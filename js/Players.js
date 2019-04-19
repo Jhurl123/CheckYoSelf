@@ -5,7 +5,6 @@ class Player {
         this.color    = color;
         this.checkers = this.createCheckers();
         this.squares  = squares;
-        this.active   = false;
 
     }
 
@@ -16,7 +15,6 @@ class Player {
         let tokensLeft = checkers.filter(checker => !checker.taken);
         return tokensLeft;
     }
-
 
     //instantiates checkers objects for each player
     createCheckers() {

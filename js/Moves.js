@@ -75,15 +75,18 @@ getPossibleDirections(square, checker) {
 //return - array
 getPossibleMoves(yMoves, xMoves) {
 
-    let squares = this.squaresArray;
-    let openSquares = [];
-    let enemyCheckers = [];
+    let squares        = this.squaresArray;
+    let openSquares    = [];
+    let enemyCheckers  = [];
+    let squaresToJump  = [];
+
     //determine if the moves are on the board
     xMoves = xMoves.map(move => {
         if(move >= 0 && move < 8) {
             return move;
         }
     });
+
     yMoves = yMoves.map(move => {
         if(move >= 0 && move < 8) {
             return move;
@@ -92,24 +95,17 @@ getPossibleMoves(yMoves, xMoves) {
 
     for( let i = 0; i < yMoves.length; i++) {
         for(let j = 0; j < xMoves.length; j++) {
-
             if(squares[xMoves[j]]) {
                 if(squares[xMoves[j]][yMoves[i]]) {
 
-                        //need to let checker  equal the opensquares checker not the current square
-                        openSquares.push(squares[xMoves[j]][yMoves[i]]);
-                    
-                
+                    //need to let checker  equal the opensquares checker not the current square
+                    openSquares.push(squares[xMoves[j]][yMoves[i]]);
                         
                 }
             }
         }
-        
     }
 
-    console.log(openSquares);
-    let tempArray = openSquares.slice();
-    console.log(tempArray);
     //loop that checks for checkers and adjusts moves accordingly
    for(let i =0; i < openSquares.length; i++) {
 
@@ -122,11 +118,17 @@ getPossibleMoves(yMoves, xMoves) {
 
             }
            else {
-               
+
+                squaresToJump.push(openSquares[i]);
+
                 let jumpMove = this.jumpEnemyMove(yMoves, openSquares[i]);
                 openSquares[i] = jumpMove;
+
                 if(openSquares[i]) {
+
+                    //this changes players property to equalfe
                     openSquares[i].jumpSquare = true;
+
                     if(openSquares[i].checker){
                         openSquares[i] = false;
                     }
@@ -139,9 +141,15 @@ getPossibleMoves(yMoves, xMoves) {
     openSquares = openSquares.filter( square => {
         return square;
     });
+
+    squaresToJump = squaresToJump.filter( square => {
+        return square;
+    });
    
 
-   return openSquares;
+   return {'moves': openSquares,
+           'jumps': squaresToJump
+          };
 
 }
 
@@ -199,7 +207,7 @@ jumpEnemyMove(yMoves, enemySquare) {
 
     for(let i = 0; i< squares.length; i++) {
         jumpMoves = squares[i].find( square => {
-           
+        
             if(square.x === horizontalSquare && square.y === verticalSquare) {
                 return square;
             }

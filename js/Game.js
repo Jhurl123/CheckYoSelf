@@ -5,7 +5,6 @@ class Game {
         this.names         = names;
         this.squares       = this.board.squares;
         this.players       = this.initPlayers(this.names);
-
     }
 
     startGame() {
@@ -120,13 +119,16 @@ class Game {
                     
                         let square = activeSquare[0];
                         let checkerElement = activeSquare[1];
+
                         let moves = new Moves(player, square, self.squares);
                         self.moves = moves;
                         self.removeSelectableClass();
 
                         let possibleMoves = moves.possibleMoves(square);
                         
-                        self.displayMoveOptions(possibleMoves);
+                        self.displayMoveOptions(possibleMoves.moves);
+                        self.possibleMoves = possibleMoves.moves;
+                        self.jumpMoves = possibleMoves.jumps;
                         
                     }
                 }
@@ -140,7 +142,8 @@ class Game {
             //will be used to also call the method on the piece moevemtn method as well
             if(isSelectableSquare) {
             
-                let player = self.getActivePlayer();
+                let isJumpSquare = self.isjumpMove(event.target);
+                let player       = self.getActivePlayer();
                 
                 //adds the selected checker to the square object checker property
                 self.addCheckerToSquareObject(event.target, player);
@@ -155,6 +158,11 @@ class Game {
                 //removed the '.clicked' class from the target checker
                 self.removeClickedClass();
 
+                //if the selectedSquare is a jumpoMove call related methods
+                if(isJumpSquare) {
+                    //Removes the jumped element from DOM
+                    self.captureCheckerfromSquareObject(event.target);
+                }
                 //change the active player
                 self.handleTurns();
 
@@ -336,12 +344,52 @@ class Game {
     //This method is used to remove the '.clicked' class from the active checker
     //Params - none;
     //Returns - N/A
-    removeClickedClass(){
+    removeClickedClass() {
 
         let activeChecker = document.querySelector('.clicked');
         activeChecker.classList.remove('clicked');
 
     }
 
+    //this method will determine if the square selected is a jump square
+    //Params - selectedSquare - HTML Element
+    //Returns Boolean
+    isjumpMove(selectedSquare) {
+
+        if(this.jumpMoves.length == 0) {
+            return;
+        }
+        else{
+            return true;
+        }
+    
+    }
+
+    //this method will determine remove the jumped square from the DOM
+    //Params - square - HTML Element
+    //Returns - removes element from DOM
+    captureCheckerfromSquareObject(square) {
+
+        let squareObject = this.convertSquareToObject(square);
+        let squares = this.squares;
+
+        console.log(squareObject);
+        if(squareObject.checker) {
+            
+            for(let i = 0; i < this.possibleMoves.length; i++) {   
+
+                if(this.possibleMoves[i] === squareObject) {
+                  let target = this.possibleMoves[i];
+                  if(target == this.jumpMoves[i]) {
+                        console.log("Hey");
+                        this.jumpMoves[i] = null;
+                    }
+                }
+            }
+
+            console.log(this.jumpMoves);
+
+        }
+    }
 
 }
