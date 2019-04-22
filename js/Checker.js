@@ -28,5 +28,15 @@ class Checker {
         square.appendChild(token);
 
     }
+
+    //Function to give the checker piece the king powers
+    // Params - checker Object
+    //returns - N/A
+    kingChecker(){
+        console.log("kinged");
+        this.power = 'king';
+        let checkerElement = document.querySelector('[data-checker="' + this.id + ',' + this.index + '"]');
+        checkerElement.classList.add('kinged');
+    }
     
 }

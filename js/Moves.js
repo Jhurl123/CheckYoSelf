@@ -29,6 +29,8 @@ possibleMoves(square) {
     return directions;
 }
 
+//Gives the possible directions a piece can move 
+// Determined by the power of the active checker
 getPossibleDirections(square, checker) {
 
     //first number of squares id, index
@@ -41,25 +43,30 @@ getPossibleDirections(square, checker) {
     //if player 1, all you need is up/left and up/right
     if(this.player.id === 1) {
 
+        if(checker) {
         //check if it is a single piece or king
-        if(checker.power === 'single') {
-            yMoves.push(y-1);
-        }
-        else {
-            yMoves.push(y+1);
-            yMoves.push(y-1);
+            if(checker.power === 'single') {
+                yMoves.push(y-1);
+            }
+            else {
+                yMoves.push(y+1);
+                yMoves.push(y-1);
+            }
         }
 
     }
     //if player 2, you only need down/left down/right
     else if(this.player.id === 2) {
-        //check if it is a single piece or king
-        if(checker.power === 'single') {
-            yMoves.push(y+1);
-        }
-        else {
-            yMoves.push(y+1);
-            yMoves.push(y-1);
+
+        if(checker) {
+            //check if it is a single piece or king
+            if(checker.power === 'single') {
+                yMoves.push(y+1);
+            }
+            else {
+                yMoves.push(y+1);
+                yMoves.push(y-1);
+            }
         }
 
     }
@@ -72,7 +79,7 @@ getPossibleDirections(square, checker) {
 
 //Function to determine if square exists/has piece in it
 //params - square - object, directions - object literal
-//return - array
+//return - object literal containing possile moves and the squares to jump
 getPossibleMoves(yMoves, xMoves) {
 
     let squares        = this.squaresArray;
@@ -81,17 +88,19 @@ getPossibleMoves(yMoves, xMoves) {
     let squaresToJump  = [];
 
     //determine if the moves are on the board
-    xMoves = xMoves.map(move => {
-        if(move >= 0 && move < 8) {
-            return move;
+    xMoves = xMoves.filter(move => {
+        if(move >= 0 && move < 8 ) {
+            return true;
         }
     });
 
-    yMoves = yMoves.map(move => {
+    yMoves = yMoves.filter(move => {
         if(move >= 0 && move < 8) {
-            return move;
+            return true;
         }
     });
+    console.log(xMoves);
+    console.log(yMoves);
 
     for( let i = 0; i < yMoves.length; i++) {
         for(let j = 0; j < xMoves.length; j++) {
@@ -100,56 +109,82 @@ getPossibleMoves(yMoves, xMoves) {
 
                     //need to let checker  equal the opensquares checker not the current square
                     openSquares.push(squares[xMoves[j]][yMoves[i]]);
-                        
                 }
             }
         }
     }
-
     //loop that checks for checkers and adjusts moves accordingly
    for(let i =0; i < openSquares.length; i++) {
 
         //call function to allow the jump over enemy piece
         if(openSquares[i].checker) {
 
-            if(openSquares[i].checker.owner === this.player.name) { 
+                //if the piece belongs to active player, don't give a  jump move
+            if(openSquares[i].checker.owner.name === this.player.name) { 
 
-               openSquares[i] = false;
+                openSquares[i] = false;
+                squaresToJump.push(null);
 
             }
-           else {
-
+            else {
+        
                 squaresToJump.push(openSquares[i]);
-
+                //get the square that will be jumped to if enemy piece was present
                 let jumpMove = this.jumpEnemyMove(yMoves, openSquares[i]);
                 openSquares[i] = jumpMove;
 
+                
                 if(openSquares[i]) {
 
-                    //this changes players property to equalfe
-                    openSquares[i].jumpSquare = true;
-
+                    //if jumpSqaure has a piece in it return false
                     if(openSquares[i].checker){
+                        squaresToJump[i] = null;
                         openSquares[i] = false;
                     }
+                
+                }
+                else {
+                    squaresToJump[i] = null;
                 }
 
             }
+
         }
+        else {
+            
+            squaresToJump.push(null);
+        }
+
     }   
+    // TODO squaresToJump may be the issue, as the possibleMOves appear to be correct
 
-    openSquares = openSquares.filter( square => {
-        return square;
-    });
 
-    squaresToJump = squaresToJump.filter( square => {
-        return square;
-    });
-   
 
-   return {'moves': openSquares,
-           'jumps': squaresToJump
-          };
+    //filter out the false values to only give valid moves
+    // openSquares = openSquares.filter( square => {
+
+    //     return square;
+
+    // });
+
+    for(let i = 0; i < openSquares.length; i++ ) {
+        if(openSquares[i] === false || openSquares[i] === undefined) {
+            openSquares.splice(i,1);
+            squaresToJump.splice(i,1);
+        }
+    }
+    
+    // squaresToJump = squaresToJump.filter( move => {
+    //     if(!move.checker) return;
+    // });
+
+    console.log(openSquares);
+    console.log(squaresToJump);
+
+   return {
+        'moves': openSquares,
+        'jumps': squaresToJump
+    };
 
 }
 
@@ -184,7 +219,6 @@ convertCheckerToObject(checker, player) {
 //function to add account for possible moves when enemy piece is in the way
 jumpEnemyMove(yMoves, enemySquare) {
 
-    enemySquare.jumpSquare = true;
     let square             = this.convertSquareToObject(this.square);
     let squares            = this.squaresArray; 
     let horizontalSquare   = '';
@@ -213,9 +247,25 @@ jumpEnemyMove(yMoves, enemySquare) {
             }
            
         });
+
         if(jumpMoves) break;
+
+
     }
 
+    if(jumpMoves) {
+        if(jumpMoves.length > 0 ) {
+            jumpMoves = jumpMoves.filter(move => {
+                if(move.x !== 0 && move.x !== 8) {
+                    if(move.y !== 0 && move.y !== 8){
+                        return move;
+                    }
+                }
+            }); 
+        }
+
+    }
+    
     return jumpMoves;
 }
 

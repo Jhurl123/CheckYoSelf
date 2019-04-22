@@ -21,7 +21,7 @@ class Player {
 
         let checkers = [];
         for(let i = 0; i < 12; i++) {
-            let token = new Checker(this.id, i, 'single', this.name, false);
+            let token = new Checker(this.id, i, 'single', this, false);
             checkers.push(token);
         }
 

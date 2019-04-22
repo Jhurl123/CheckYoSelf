@@ -1,6 +1,7 @@
 (function() {
     //hideBoard();
-   // popupForm();
+   //popupForm();
+   
    var game = new Game();
    
    game.startGame();
@@ -38,6 +39,5 @@ function popupForm() {
 
     });
 
-    
-
 }
+

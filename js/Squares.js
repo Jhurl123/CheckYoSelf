@@ -5,7 +5,6 @@ class Squares {
         this.y        = y;
         this.id       = id;
         this.checker  = null;
-        this.jumpSquare = false;
 
     }
 

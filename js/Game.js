@@ -11,7 +11,10 @@ class Game {
         this.board.renderSquares();
         this.players[0].displayCheckers();
         this.players[1].displayCheckers();
+        this.statsContainerName();
+        this.moveListener();
         this.handleTurns('first');
+
         //this.pieceSelect();
        
     }
@@ -62,30 +65,36 @@ class Game {
     handleTurns(first = null) {
         //end event listener on board?
 
+        if(this.possibleMoves) {
+            this.possibleMoves = undefined;
+        }
+
         let players = this.players;
 
         if(first == "first") {
 
-            this.moveListener(players[0]);
+            //this.moveListener(players[0]);
             players[0].active = true;
             players[1].active = false;
                  
         }   
         else if(players[0].active) {
-            this.moveListener(players[1]);
+            //this.moveListener(players[1]);
             players[0].active = false;
             players[1].active = true;
         }
         else if( players[1].active) {
             //call listener, which calls movePieces() but only allow that players 
-            this.moveListener(players[0]);
+           // this.moveListener(players[0]);
             players[0].active = true;
             players[1].active = false;
         }
         
     }
+    // TODO Find another way to handle turns w/o calling moveListener multiple times
+    // or find a way to cancel the listener
 
-    moveListener(player) {
+    moveListener() {
         //at end of this function call handle turns again
         //call get score function to determine whether or not to call handleTurns again
 
@@ -102,24 +111,25 @@ class Game {
         board.addEventListener('click', function(event) {
 
             let targetList = event.target.classList;
+            if(targetList.contains('checker')) {
+                var targetPlayer = event.target.dataset.checker[0];
+            }
+            let player = self.getActivePlayer();
             let isSelectableSquare = targetList.contains('selectable');
 
-
-
-            if(targetList.contains('checker')) {
-
-                // if(targetList.contains('clicked')) {
-                //     self.removeClickedClass();
-                //     self.removeSelectableClass();
-                // }
+            if(targetList.contains('checker') && targetPlayer == player.id ) {
               
                 if(!targetList.contains('clicked')) {
+                    // gets the square element
+                   
                     let activeSquare = self.checkerSelect(player, event);
                     if(activeSquare ) {
                     
+                        //clicked square
                         let square = activeSquare[0];
+                        //clicked checker
                         let checkerElement = activeSquare[1];
-
+                       
                         let moves = new Moves(player, square, self.squares);
                         self.moves = moves;
                         self.removeSelectableClass();
@@ -128,6 +138,7 @@ class Game {
                         
                         self.displayMoveOptions(possibleMoves.moves);
                         self.possibleMoves = possibleMoves.moves;
+                        self.jumpMoves = null;
                         self.jumpMoves = possibleMoves.jumps;
                         
                     }
@@ -144,6 +155,7 @@ class Game {
             
                 let isJumpSquare = self.isjumpMove(event.target);
                 let player       = self.getActivePlayer();
+                let isReady      = false;
                 
                 //adds the selected checker to the square object checker property
                 self.addCheckerToSquareObject(event.target, player);
@@ -160,21 +172,31 @@ class Game {
 
                 //if the selectedSquare is a jumpoMove call related methods
                 if(isJumpSquare) {
-                    //Removes the jumped element from DOM
-                    self.captureCheckerfromSquareObject(event.target);
-                }
-                //change the active player
-                self.handleTurns();
-
-            }
-        });
+                   //removes 
     
-        //this.handleTurns();
+                   let jumpSquare =  self.captureCheckerfromSquareObject(event.target);
+                    //Removes the jumped element from DOM
+                    if(jumpSquare) {
+                        
+                        isReady = self.removeCapturedChecker(jumpSquare);
+                        
+                    }
+                }
+            
+                self.handleTurns();
+            
+            }
+
+            
+        });
+
+      
 
     }
 
     //behavior of selection
-    // click a piece, add clicked class to 
+    // click a piece, add clicked class to
+    //Returns - Square Element, clicked checker element
     checkerSelect(player, event) {
 
         let target        = event.target;
@@ -199,7 +221,7 @@ class Game {
                
                 pieceSelected = true;
             }
-            //TODO NEed to create method to remove clicked 
+            
             else if(target.classList.contains('clicked')) {
                 target.classList.remove('clicked');
             }
@@ -244,14 +266,23 @@ class Game {
     //returns array of square elements
     convertSquareToElement(possibleMoves) {
 
-        let squareElements = possibleMoves.map( square => {
-            let id = square.x + ',' + square.y;
+        if(possibleMoves.constructor === Array) {
+            let squareElements = possibleMoves.map( square => {
+                let id = square.x + ',' + square.y;
+                let element = document.querySelector("[data-id='" + id + "']");
+
+                return element;
+            });
+            return squareElements;
+        }
+        else {
+            let id = possibleMoves.x + ',' + possibleMoves.y;
             let element = document.querySelector("[data-id='" + id + "']");
 
             return element;
-        });
-        
-        return squareElements;
+
+        }
+
     }
     
     // function to turn element into square object
@@ -275,11 +306,23 @@ class Game {
     convertCheckerToObject(checker, player) {
 
         let id = checker.dataset.checker;
-        let  y = parseInt(id[2]);
+        if(id.length === 3) {
+            var  y = parseInt(id[2]);
+        }
+        else { 
+            var y = parseInt(id[2] + id[3]);
+        }
         let checkers = player.checkersLeft;
-        let checkerObject = checkers[y];
 
-        return checkerObject;
+        for(let i =0; i < checkers.length; i++) {
+            if(checkers[i].index == y ){
+                let checkerObject = checkers[i];
+                return checkerObject;
+            }
+        }
+
+
+       
     }
 
     //This method is used to add the element to the square that is selected
@@ -338,6 +381,10 @@ class Game {
         let squareObject = this.convertSquareToObject(targetSquare);
 
         squareObject.checker = checkerObject;
+
+        if(squareObject.y === 0 || squareObject.y === 7) {
+            checkerObject.kingChecker();
+        }
         
     }
 
@@ -355,8 +402,14 @@ class Game {
     //Params - selectedSquare - HTML Element
     //Returns Boolean
     isjumpMove(selectedSquare) {
+        
+        let jumpMoves = this.jumpMoves.filter(move => {
+            return move;
+        });
 
-        if(this.jumpMoves.length == 0) {
+
+
+        if(!jumpMoves || jumpMoves.length === 0) {
             return;
         }
         else{
@@ -371,25 +424,83 @@ class Game {
     captureCheckerfromSquareObject(square) {
 
         let squareObject = this.convertSquareToObject(square);
-        let squares = this.squares;
+        let squares = this.squares;    
+    
+        if(this.possibleMoves.length === 1) {
+            this.possibleMoves = this.possibleMoves.filter(move => {
+                return move;
+            });
 
-        console.log(squareObject);
-        if(squareObject.checker) {
-            
-            for(let i = 0; i < this.possibleMoves.length; i++) {   
+            this.jumpMoves = this.jumpMoves.filter(move => {
+                return move;
+            });
+        }
+        
+        for(let i = 0; i < this.possibleMoves.length; i++) {   
 
-                if(this.possibleMoves[i] === squareObject) {
-                  let target = this.possibleMoves[i];
-                  if(target == this.jumpMoves[i]) {
-                        console.log("Hey");
-                        this.jumpMoves[i] = null;
-                    }
+            if(this.possibleMoves[i] === squareObject) {
+                let target = this.jumpMoves[i];
+
+                if(this.jumpMoves[i]) {
+                    let activePlayer = this.getActivePlayer();
+                    
+                    this.addTakenProptoChecker(this.jumpMoves[i].checker);
+                    this.updateStatsCount(this.jumpMoves[i].checker.owner);
+                    
+                    this.jumpMoves[i].checker = null;
+                    return this.jumpMoves[i];
                 }
             }
-
-            console.log(this.jumpMoves);
-
         }
+       
+    }
+
+    //function that adds the taken property to the checker that is jumped
+    //Params - checker - checker Object
+    //Returns - N/A
+    addTakenProptoChecker(checker) {
+
+        checker.taken = true;
+        
+    }
+
+
+
+    //Function to removes the captured enemy piece
+    //Params - square -HTML ELlement
+    //Returns N/a
+    removeCapturedChecker(square) {
+
+        square = this.convertSquareToElement(square);
+        let checker = square.querySelector('.checker');
+        var isReady = true;
+        this.jumpMoves = undefined;
+
+        checker.remove();
+
+        return isReady;
+    }
+
+    //Function to update the players stats in the DOM
+    //Params - Player object
+    //Returns N/A
+    updateStatsCount(player) {
+        
+        let id = player.id;
+        let playerStats = document.querySelector('[data-id="' + id + '"]');
+        playerStats.innerHTML = player.checkersLeft.length;
+    }
+
+    //Function to populate the players name in the headline
+    //Params - N/A
+    statsContainerName() {
+        let playerOneName = this.players[0].name;
+        let playerTwoName = this.players[1].name;
+        let playerOneHeadline = document.querySelector('.player-one_name');
+        let playerTwoHeadline = document.querySelector('.player-two_name');
+
+        playerOneHeadline.innerHTML = playerOneName;
+        playerTwoHeadline.innerHTML = playerTwoName;
     }
 
 }
