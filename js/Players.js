@@ -14,6 +14,7 @@ class Player {
         let checkers = this.checkers;
         let tokensLeft = checkers.filter(checker => !checker.taken);
         return tokensLeft;
+        
     }
 
     //instantiates checkers objects for each player
@@ -26,6 +27,7 @@ class Player {
         }
 
         return checkers;
+
     }   
 
     //method that calls render method and adds the checker object to square object

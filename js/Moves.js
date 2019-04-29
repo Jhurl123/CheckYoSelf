@@ -99,8 +99,6 @@ getPossibleMoves(yMoves, xMoves) {
             return true;
         }
     });
-    console.log(xMoves);
-    console.log(yMoves);
 
     for( let i = 0; i < yMoves.length; i++) {
         for(let j = 0; j < xMoves.length; j++) {
@@ -156,16 +154,6 @@ getPossibleMoves(yMoves, xMoves) {
         }
 
     }   
-    // TODO squaresToJump may be the issue, as the possibleMOves appear to be correct
-
-
-
-    //filter out the false values to only give valid moves
-    // openSquares = openSquares.filter( square => {
-
-    //     return square;
-
-    // });
 
     for(let i = 0; i < openSquares.length; i++ ) {
         if(openSquares[i] === false || openSquares[i] === undefined) {
@@ -173,13 +161,6 @@ getPossibleMoves(yMoves, xMoves) {
             squaresToJump.splice(i,1);
         }
     }
-    
-    // squaresToJump = squaresToJump.filter( move => {
-    //     if(!move.checker) return;
-    // });
-
-    console.log(openSquares);
-    console.log(squaresToJump);
 
    return {
         'moves': openSquares,

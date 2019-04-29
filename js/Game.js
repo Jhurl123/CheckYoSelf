@@ -63,7 +63,6 @@ class Game {
 
     //call this when the move is over and on game start
     handleTurns(first = null) {
-        //end event listener on board?
 
         if(this.possibleMoves) {
             this.possibleMoves = undefined;
@@ -91,20 +90,13 @@ class Game {
         }
         
     }
-    // TODO Find another way to handle turns w/o calling moveListener multiple times
-    // or find a way to cancel the listener
 
+    //Function that calls the main listener on the board
+    //Interfaces with most other functions, needs to be refactored
+    //Params - N/A
+    //Returns -N/A
     moveListener() {
-        //at end of this function call handle turns again
-        //call get score function to determine whether or not to call handleTurns again
 
-        //handle first click ie. piece selection
-        //if player whos turn it is selects wrong piece, display error message
-
-
-        //then allow the user to select a square
-        //run check on selected square to see if it contains a piece owned by player
-        //let board = this.board;
         let board = document.querySelector('.board');
         let self = this;
         
@@ -135,8 +127,16 @@ class Game {
                         self.removeSelectableClass();
 
                         let possibleMoves = moves.possibleMoves(square);
-                        
-                        self.displayMoveOptions(possibleMoves.moves);
+                        console.log(possibleMoves.moves);
+
+                        //TODO This needs to be re-written, it returns error when there isn't a move ava
+                        if(!possibleMoves.moves[0]) {
+                            self.determineNoMoves(player,square);
+                        }
+                        else {
+                            self.displayMoveOptions(possibleMoves.moves);
+                        }
+
                         self.possibleMoves = possibleMoves.moves;
                         self.jumpMoves = null;
                         self.jumpMoves = possibleMoves.jumps;
@@ -156,6 +156,7 @@ class Game {
                 let isJumpSquare = self.isjumpMove(event.target);
                 let player       = self.getActivePlayer();
                 let isReady      = false;
+
                 
                 //adds the selected checker to the square object checker property
                 self.addCheckerToSquareObject(event.target, player);
@@ -170,7 +171,7 @@ class Game {
                 //removed the '.clicked' class from the target checker
                 self.removeClickedClass();
 
-                //if the selectedSquare is a jumpoMove call related methods
+                //if the selectedSquare is a jumppMove call related methods
                 if(isJumpSquare) {
                    //removes 
     
@@ -181,16 +182,29 @@ class Game {
                         isReady = self.removeCapturedChecker(jumpSquare);
                         
                     }
+                    else {
+                        
+                        self.handleTurns();
+                    }
                 }
-            
-                self.handleTurns();
+                else {
+                    // if the player doesn't jump a piece, switch turns
+                    self.handleTurns();
+
+                }
             
             }
 
-            
         });
 
-      
+        let winner = this.determineWinner();
+
+        if(winner) {
+            this.outputWinner();
+        }
+        else {
+            self.handleTurns();
+        }
 
     }
 
@@ -459,9 +473,7 @@ class Game {
     //Params - checker - checker Object
     //Returns - N/A
     addTakenProptoChecker(checker) {
-
         checker.taken = true;
-        
     }
 
 
@@ -501,6 +513,82 @@ class Game {
 
         playerOneHeadline.innerHTML = playerOneName;
         playerTwoHeadline.innerHTML = playerTwoName;
+    }
+
+    //Function to determine a winner
+    //Params - N/A
+    //Returns - N/A
+    determineWinner(noMoves) {
+        let players = this.players;
+        let playerOneCheckers = players[0].checkersLeft.length;
+        let playerTwoCheckers = players[1].checkersLeft.length;
+        var winner = [];
+
+        if(!noMoves) {
+             winner.push(players.filter(player => {
+                return player.checkersLeft.length === 0;
+            }));
+        }
+        else {
+            let max = Math.max(playerOneCheckers, playerTwoCheckers);
+
+            if(max === playerOneCheckers) {
+                winner.push(players[0]);
+            }
+            else {
+                winner.push(players[1]);
+            }
+
+        }
+
+        if(winner.length !== 0) {
+            console.log(winner);
+            console.log("The winner is " + winner[0].name) ;
+            //call game ending method
+        }
+        else {
+
+            return winner[0];
+        }
+        
+    }
+
+    //Params - ActivePlayer - object, targetSquare - htmlElement
+    //Returns - 
+    determineNoMoves(player, targetSquare) {
+
+        let players = this.players;
+        let playerOneCheckers = players[0].checkersLeft;
+        let playerTwoCheckers = players[1].checkersLeft;
+        let playerCheckers = player.checkersLeft;
+        let isStalemate = false;
+
+
+        let possibleMoves = playerCheckers.filter(checker => {
+
+            let moves = new Moves(player, targetSquare, this.squares);
+            let possibleMoves = moves.possibleMoves(targetSquare);
+
+
+            return possibleMoves.moves;
+        });
+
+        if(possibleMoves.length !== 0) {
+            isStalemate = true;
+        }
+        this.determineWinner("noMoves");
+
+       
+    }
+
+    //function to end the Game
+    //Params - player - object
+    //Returns - N/A
+    outputWinner(player) {
+        let winnerModal = document.createElement('div');
+        winnerModal.classList.add('winner_modal');
+        document.body.append(winnerModal);
+
     }
 
 }
