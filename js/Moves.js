@@ -1,7 +1,6 @@
 class Moves {
-    constructor(player, square, squares) {
+    constructor(player, squares) {
         this.player         = player;
-        this.square         = square;
         this.squaresArray   = squares;
     }
 
@@ -71,16 +70,16 @@ getPossibleDirections(square, checker) {
 
     }
 
-    let newDirections = this.getPossibleMoves(yMoves, xMoves);
+    let newDirections = this.getPossibleMoves(yMoves, xMoves, square);
 
     return newDirections;
 
 }
 
-//Function to determine if square exists/has piece in it
+//Function to determine the moves a piece can take - both regular and jump moves calculated here
 //params - square - object, directions - object literal
-//return - object literal containing possile moves and the squares to jump
-getPossibleMoves(yMoves, xMoves) {
+//return - object literal containing possible moves and the squares to jump
+getPossibleMoves(yMoves, xMoves, square) {
 
     let squares        = this.squaresArray;
     let openSquares    = [];
@@ -128,10 +127,9 @@ getPossibleMoves(yMoves, xMoves) {
         
                 squaresToJump.push(openSquares[i]);
                 //get the square that will be jumped to if enemy piece was present
-                let jumpMove = this.jumpEnemyMove(yMoves, openSquares[i]);
+                let jumpMove = this.jumpEnemyMove(yMoves, openSquares[i], square);
                 openSquares[i] = jumpMove;
 
-                
                 if(openSquares[i]) {
 
                     //if jumpSqaure has a piece in it return false
@@ -155,12 +153,24 @@ getPossibleMoves(yMoves, xMoves) {
 
     }   
 
+    //filters the false values, but keeps the null values
     for(let i = 0; i < openSquares.length; i++ ) {
         if(openSquares[i] === false || openSquares[i] === undefined) {
             openSquares.splice(i,1);
             squaresToJump.splice(i,1);
         }
+
+        //This part handles the rule, that if there is a jump move, it must be made
+        if(!squaresToJump.every(element => element === null)) {
+            openSquares = this.mandatoryJump(openSquares, squaresToJump, i);
+        }
     }
+
+    openSquares = openSquares.filter(move => { return move});
+    if(openSquares.length == 0 ) {
+        squaresToJump = squaresToJump.filter(move => { return move});
+    }
+   // console.log(squaresToJump);
 
    return {
         'moves': openSquares,
@@ -198,9 +208,9 @@ convertCheckerToObject(checker, player) {
 }
 
 //function to add account for possible moves when enemy piece is in the way
-jumpEnemyMove(yMoves, enemySquare) {
+jumpEnemyMove(yMoves, enemySquare, playerSquare) {
 
-    let square             = this.convertSquareToObject(this.square);
+    let square             = playerSquare;
     let squares            = this.squaresArray; 
     let horizontalSquare   = '';
     let verticalSquare     = '';
@@ -250,4 +260,13 @@ jumpEnemyMove(yMoves, enemySquare) {
     return jumpMoves;
 }
 
+// Funtion to enforce the mandatory jump, strips non jump moves if there's a jump move available
+//Params - openSquares - array of Objects, squaresToJump - array of objects
+//returns - openSquares array of objects
+mandatoryJump(openSquares, squaresToJump, idx) {
+    if(squaresToJump[idx] === null) {
+        openSquares.splice(idx,1);
+    }
+    return openSquares;
+}
 }

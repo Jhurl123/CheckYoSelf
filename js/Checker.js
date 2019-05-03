@@ -11,12 +11,12 @@ class Checker {
     //owner of piece may change over time
 
     get position() {
-        let square     = document.getElementById(this.id);
+        let square     = document.querySelector('.' + this.class);
         let parent     = square.parentElement;
         let firstClass =  parent.classList[0];
 
         let position = parseInt(firstClass.replace(/[^0-9\.]/g, ''), 10);
-        return this.position = parent ;
+        return position = parent ;
     }
 
     renderCheckers(color, position) {
@@ -24,6 +24,7 @@ class Checker {
         token.setAttribute('data-checker', this.id + ',' + this.index);
         let square = document.querySelector(`[data-id="${position.x},${position.y}"]`);
         token.classList.add('checker');
+        token.classList.add(this.class);
         token.style.backgroundColor = color;
         square.appendChild(token);
 

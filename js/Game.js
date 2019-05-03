@@ -69,26 +69,30 @@ class Game {
         }
 
         let players = this.players;
+        let isMandatory = false;
 
         if(first == "first") {
-
-            //this.moveListener(players[0]);
             players[0].active = true;
             players[1].active = false;
                  
         }   
         else if(players[0].active) {
-            //this.moveListener(players[1]);
             players[0].active = false;
             players[1].active = true;
+            //check to see if a jump is mandatory for any piece
+            isMandatory = this.getMandatoryJump(players[1]);
         }
         else if( players[1].active) {
-            //call listener, which calls movePieces() but only allow that players 
-           // this.moveListener(players[0]);
             players[0].active = true;
             players[1].active = false;
+             //check to see if a jump is mandatory for any piece
+            isMandatory = this.getMandatoryJump(players[0]);
         }
         
+        if(isMandatory) {
+            console.log(isMandatory);
+           this.mandatoryJumpListener(isMandatory);
+        }
     }
 
     //Function that calls the main listener on the board
@@ -100,12 +104,14 @@ class Game {
         let board = document.querySelector('.board');
         let self = this;
         
-        board.addEventListener('click', function(event) {
-
+        this.mainListener = function(event) {
+            
             let targetList = event.target.classList;
+
             if(targetList.contains('checker')) {
                 var targetPlayer = event.target.dataset.checker[0];
             }
+
             let player = self.getActivePlayer();
             let isSelectableSquare = targetList.contains('selectable');
 
@@ -122,24 +128,26 @@ class Game {
                         //clicked checker
                         let checkerElement = activeSquare[1];
                        
-                        let moves = new Moves(player, square, self.squares);
-                        self.moves = moves;
+                        let moves = new Moves(player, self.squares);
                         self.removeSelectableClass();
 
                         let possibleMoves = moves.possibleMoves(square);
-                        console.log(possibleMoves.moves);
+                        self.possibleMoves = possibleMoves.moves;
+                        //reset the property
+                        self.jumpMoves = null;
 
-                        //TODO This needs to be re-written, it returns error when there isn't a move ava
+                        self.jumpMoves = possibleMoves.jumps;
+
+
                         if(!possibleMoves.moves[0]) {
                             self.determineNoMoves(player,square);
+                           
                         }
                         else {
+                            
                             self.displayMoveOptions(possibleMoves.moves);
+                            
                         }
-
-                        self.possibleMoves = possibleMoves.moves;
-                        self.jumpMoves = null;
-                        self.jumpMoves = possibleMoves.jumps;
                         
                     }
                 }
@@ -179,13 +187,12 @@ class Game {
                     //Removes the jumped element from DOM
                     if(jumpSquare) {
                         
-                        isReady = self.removeCapturedChecker(jumpSquare);
+                        self.removeCapturedChecker(jumpSquare);
                         
                     }
-                    else {
-                        
-                        self.handleTurns();
-                    }
+
+                    //;;call this when result of mandatoy move is found
+                    self.handleTurns();
                 }
                 else {
                     // if the player doesn't jump a piece, switch turns
@@ -194,17 +201,18 @@ class Game {
                 }
             
             }
+        };
 
-        });
+        board.addEventListener('click', this.mainListener);
 
-        let winner = this.determineWinner();
+        // let winner = this.determineWinner();
 
-        if(winner) {
-            this.outputWinner();
-        }
-        else {
-            self.handleTurns();
-        }
+        // if(winner) {
+        //     this.outputWinner();
+        // }
+        // else {
+        //     self.handleTurns();
+        // }
 
     }
 
@@ -253,6 +261,7 @@ class Game {
     displayMoveOptions(possibleMoves) {
 
         let squareElements = this.convertSquareToElement(possibleMoves);
+        squareElements = squareElements.filter(square => {return square});
         for(let i = 0; i < squareElements.length; i++ ) {
             squareElements[i].classList.add('selectable');
         }
@@ -281,11 +290,14 @@ class Game {
     convertSquareToElement(possibleMoves) {
 
         if(possibleMoves.constructor === Array) {
+        
             let squareElements = possibleMoves.map( square => {
-                let id = square.x + ',' + square.y;
-                let element = document.querySelector("[data-id='" + id + "']");
-
-                return element;
+                if(square) {
+                    let id = square.x + ',' + square.y;
+                    let element = document.querySelector("[data-id='" + id + "']");
+                
+                    return element;
+                }
             });
             return squareElements;
         }
@@ -380,7 +392,7 @@ class Game {
         let activeChecker = document.querySelector('.clicked');
         let parentSquare = activeChecker.parentNode;
         let squareObject = this.convertSquareToObject(parentSquare);
-        squareObject.checker = null;
+        squareObject.checker = undefined;
 
     }
 
@@ -438,8 +450,8 @@ class Game {
     captureCheckerfromSquareObject(square) {
 
         let squareObject = this.convertSquareToObject(square);
-        let squares = this.squares;    
     
+     
         if(this.possibleMoves.length === 1) {
             this.possibleMoves = this.possibleMoves.filter(move => {
                 return move;
@@ -449,6 +461,7 @@ class Game {
                 return move;
             });
         }
+        
         
         for(let i = 0; i < this.possibleMoves.length; i++) {   
 
@@ -462,6 +475,7 @@ class Game {
                     this.updateStatsCount(this.jumpMoves[i].checker.owner);
                     
                     this.jumpMoves[i].checker = null;
+                    console.log(this.jumpMoves[i].checker);
                     return this.jumpMoves[i];
                 }
             }
@@ -519,6 +533,7 @@ class Game {
     //Params - N/A
     //Returns - N/A
     determineWinner(noMoves) {
+        
         let players = this.players;
         let playerOneCheckers = players[0].checkersLeft.length;
         let playerTwoCheckers = players[1].checkersLeft.length;
@@ -542,8 +557,6 @@ class Game {
         }
 
         if(winner.length !== 0) {
-            console.log(winner);
-            console.log("The winner is " + winner[0].name) ;
             //call game ending method
         }
         else {
@@ -566,7 +579,7 @@ class Game {
 
         let possibleMoves = playerCheckers.filter(checker => {
 
-            let moves = new Moves(player, targetSquare, this.squares);
+            let moves = new Moves(player, this.squares);
             let possibleMoves = moves.possibleMoves(targetSquare);
 
 
@@ -581,6 +594,67 @@ class Game {
        
     }
 
+    //Function to determine if a jump needs to be made at the beginning of turn, 
+    //before selecting a piece
+    //Params - player - player object
+    //Returns - TBD
+    //TODO MAndatory jump function
+    getMandatoryJump(player) {
+
+        // pass every checker for player via checkersLeft prop, red
+        //call Moves.possibleDirections in a loop, passing it the square containing the checker, checking if there's an available 
+        //jump move
+
+        //if jumpMove available, remove current boardListener and create new one for whole board, 
+        //that only listens for clicks on selected squares, if clicked elsewhere, prompt user that they must make that jump
+        var moveObject = new Moves(player, this.squares);
+        let isMandatory = false;
+
+        let checkersLeft = player.checkersLeft;
+
+        //Loop through checkers left to determine if one of them can make a jump move
+        for(let i=0; i<checkersLeft.length; i++) {
+            let square = checkersLeft[i].position;
+
+            var moves = moveObject.possibleMoves(square);
+
+            //set global prop of possible moves to this
+
+            var jumps = moves.jumps;
+
+            //Test to see if there is a jumpMove available for any piece on the board for player
+            if(!jumps.every(element => element === null)) {
+                for(let j = 0; j < jumps.length; j++) {
+                    if(jumps[j]) {
+                        let checker = checkersLeft[i];
+                     
+                        checker = document.querySelector('.' + checker.class);
+                        console.log(checker);
+                        checker.classList.add('clicked');
+                        isMandatory = true;
+                        break;
+                    }
+                }
+            }
+            if(isMandatory) {
+                break;
+            }
+        
+        }
+
+        //Also going to need to give that checker the selected class
+        // TODO enemy checker element not being removed from the DOM on mandatory jump
+        if(isMandatory === true) {
+            this.possibleMoves = moves.moves;
+            this.jumpMoves = moves.jumps;
+            return moves.moves;
+        }
+        else {
+            return 0;
+        }
+    }
+
+    // TODO Game ending method
     //function to end the Game
     //Params - player - object
     //Returns - N/A
@@ -590,5 +664,65 @@ class Game {
         document.body.append(winnerModal);
 
     }
+
+    // Function to give a listener to a piece that must make a jump move
+    //Cancels the main board listener
+    // Params - swuare - array of square objects to jump
+    // Returns - N/A
+    mandatoryJumpListener(squares) {
+
+        let board = document.querySelector('.board');
+        let self = this;
+
+        board.removeEventListener('click', this.mainListener);
+
+        let squareElements = squares.map(square => {
+            square = this.convertSquareToElement(square);
+            square.classList.add('selectable');
+            return square;
+        });
+
+
+        if(squares) {
+            squareElements.forEach(element => {
+                element.addEventListener('click', function(event) {
+                    var targetList         = event.target.classList;
+                    let isSelectableSquare = targetList.contains('selectable');
+                    let target             = event.target;
+                    let player             = self.getActivePlayer();
+
+                     //adds the selected checker to the square object checker property
+                    self.addCheckerToSquareObject(event.target, player);
+
+                    //removes the selected checker from the previous squares checker property
+                    self.removeCheckerFromSquareObject();
+                    self.removeSelectableClass();
+
+                    ////moves the checker html element to target square
+                    self.addPieceElement(event.target);
+
+                    //removed the '.clicked' class from the target checker
+                    self.removeClickedClass();
+
+                    //if the selectedSquare is a jumppMove call related methods
+                    let jumpSquare =  self.captureCheckerfromSquareObject(event.target);
+                    console.log(jumpSquare);
+                    //Removes the jumped element from DOM
+                    if(jumpSquare) {
+                        console.log("Bullshit");
+                        
+                        self.removeCapturedChecker(jumpSquare);
+                        
+                    }
+
+                    //;;call this when result of mandatoy move is found
+                    self.handleTurns();
+                });
+            });
+        }
+
+        this.moveListener();
+    }
+
 
 }
